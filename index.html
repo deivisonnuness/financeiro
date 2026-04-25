@@ -1703,65 +1703,85 @@ function renderAlerts() {
 // ============================================================
 // GOOGLE SHEETS
 // ============================================================
-async function testSheetsConnection() {
-  const url = document.getElementById('sheets-url').value.trim();
-  if (!url) { showSheetsMsg('error','Informe a URL do Apps Script!'); return; }
-  state.sheetsUrl = url; state.sheetsId = document.getElementById('sheets-id').value.trim(); saveState();
-  showSheetsMsg('info','Testando conexão...');
-  try {
-    const res = await fetch(url, {method:'GET',mode:'no-cors'});
-    showSheetsMsg('success','✅ URL configurada! A conexão no-cors não retorna resposta, mas a URL foi salva. Tente sincronizar para validar completamente.');
-    document.getElementById('sheets-status-badge').className='sheets-status connected';
-    document.getElementById('sheets-status-badge').textContent='Configurado';
-  } catch(e) {
-    showSheetsMsg('error','❌ Erro: '+e.message+'. Verifique a URL e as permissões do Apps Script.');
-  }
-}
-
 async function syncToSheets() {
   const url = document.getElementById('sheets-url').value.trim();
   const sheetId = document.getElementById('sheets-id').value.trim();
+  
   if (!url) { showSheetsMsg('error','Configure a URL do Apps Script primeiro!'); return; }
-  state.sheetsUrl = url; state.sheetsId = sheetId; saveState();
+  
+  state.sheetsUrl = url; 
+  state.sheetsId = sheetId; 
+  saveState();
+  
   showSheetsMsg('info','Sincronizando...');
+  
   try {
-    const payload = {action:'sync',sheetId,receitas:state.receitas,despesas:state.despesas,investimentos:state.investimentos};
-    const res = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const payload = {
+      action: 'sync',
+      sheetId,
+      receitas: state.receitas,
+      despesas: state.despesas,
+      investimentos: state.investimentos
+    };
+
+    // MUDANÇA AQUI: Enviamos como text/plain para evitar o erro de OPTIONS/CORS
+    const res = await fetch(url, {
+      method: 'POST',
+      mode: 'cors', // Adicionado explicitamente
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8' 
+      },
+      body: JSON.stringify(payload)
+    });
+
     const data = await res.json();
-    if (data.success) { showSheetsMsg('success','✅ '+data.msg); document.getElementById('sheets-status-badge').className='sheets-status connected'; document.getElementById('sheets-status-badge').textContent='Sincronizado'; }
-    else showSheetsMsg('error','❌ '+data.msg);
+    
+    if (data.success) { 
+      showSheetsMsg('success','✅ ' + data.msg); 
+      document.getElementById('sheets-status-badge').className='sheets-status connected'; 
+      document.getElementById('sheets-status-badge').textContent='Sincronizado'; 
+    } else { 
+      showSheetsMsg('error','❌ ' + data.msg); 
+    }
   } catch(e) {
-    showSheetsMsg('error','❌ Erro de comunicação. Verifique as configurações do Apps Script (CORS/permissões). Detalhe: '+e.message);
+    showSheetsMsg('error','❌ Erro de comunicação. Verifique se a Implantação está como "Qualquer pessoa" e use a URL /exec. Detalhe: ' + e.message);
   }
 }
 
+// VERSÃO CORRIGIDA PARA O IMPORT
 async function importFromSheets() {
   const url = document.getElementById('sheets-url').value.trim();
   const sheetId = document.getElementById('sheets-id').value.trim();
+  
   if (!url) { showSheetsMsg('error','Configure a URL do Apps Script primeiro!'); return; }
+  
   showSheetsMsg('info','Importando dados...');
+  
   try {
-    const res = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'export',sheetId})});
+    const res = await fetch(url, {
+      method: 'POST',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify({ action: 'export', sheetId })
+    });
+    
     const data = await res.json();
+    
     if (data.success && data.data) {
       if (data.data.receitas) state.receitas = data.data.receitas;
       if (data.data.despesas) state.despesas = data.data.despesas;
-      saveState(); renderAll();
+      if (data.data.investimentos) state.investimentos = data.data.investimentos; // Adicionado investimentos
+      saveState(); 
+      renderAll();
       showSheetsMsg('success','✅ Dados importados com sucesso!');
-    } else { showSheetsMsg('error','❌ '+(data.msg||'Erro ao importar')); }
+    } else { 
+      showSheetsMsg('error','❌ ' + (data.msg || 'Erro ao importar')); 
+    }
   } catch(e) {
-    showSheetsMsg('error','❌ Erro: '+e.message);
+    showSheetsMsg('error','❌ Erro: ' + e.message);
   }
-}
-
-function showSheetsMsg(type, msg) {
-  const typeMap = {success:'alert-success',error:'alert-danger',info:'alert-info',warn:'alert-warn'};
-  document.getElementById('sheets-msg').innerHTML = `<div class="alert ${typeMap[type]||'alert-info'}">${msg}</div>`;
-}
-
-function copyAppsScript() {
-  const code = document.getElementById('appsScriptCode').textContent;
-  navigator.clipboard.writeText(code).then(()=>alert('✅ Código copiado!')).catch(()=>alert('Selecione e copie manualmente o código acima.'));
 }
 
 // ============================================================
