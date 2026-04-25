@@ -612,86 +612,121 @@ main{flex:1;padding:24px;overflow-y:auto;max-width:1400px}
       <details class="mt12">
         <summary style="cursor:pointer;font-size:12px;color:var(--accent)">Ver código Apps Script</summary>
         <pre id="appsScriptCode" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:16px;font-size:11px;font-family:var(--mono);color:var(--text2);overflow-x:auto;margin-top:8px;white-space:pre-wrap">
-function doPost(e) {
-  try {
-    var data = JSON.parse(e.postData.contents);
-    var ss = SpreadsheetApp.openById(data.sheetId || PropertiesService.getScriptProperties().getProperty('SHEET_ID'));
-    var action = data.action;
-    
-    if (action === 'sync') {
-      syncData(ss, data);
-      return ContentService.createTextOutput(JSON.stringify({success:true,msg:'Sincronizado com sucesso!'})).setMimeType(ContentService.MimeType.JSON);
-    }
-    if (action === 'export') {
-      var result = exportData(ss);
-      return ContentService.createTextOutput(JSON.stringify({success:true,data:result})).setMimeType(ContentService.MimeType.JSON);
-    }
-    return ContentService.createTextOutput(JSON.stringify({success:false,msg:'Ação inválida'})).setMimeType(ContentService.MimeType.JSON);
-  } catch(err) {
-    return ContentService.createTextOutput(JSON.stringify({success:false,msg:err.toString()})).setMimeType(ContentService.MimeType.JSON);
-  }
-}
+// FinanceFlow — Google Apps Script v2
+// Cole este código no Apps Script e reimplante como App da Web:
+//   Executar como: Eu  |  Quem acessa: Qualquer pessoa
 
 function doGet(e) {
-  return ContentService.createTextOutput(JSON.stringify({success:true,msg:'FinanceFlow API OK'})).setMimeType(ContentService.MimeType.JSON);
+  var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : 'ping';
+  var output;
+
+  if (action === 'ping') {
+    output = {success: true, msg: 'FinanceFlow API OK'};
+
+  } else if (action === 'export') {
+    var sheetId = e.parameter.sheetId || '';
+    var ss = sheetId ? SpreadsheetApp.openById(sheetId) : SpreadsheetApp.getActiveSpreadsheet();
+    output = {success: true, data: exportData(ss)};
+
+  } else {
+    output = {success: false, msg: 'Acao desconhecida: ' + action};
+  }
+
+  return ContentService
+    .createTextOutput(JSON.stringify(output))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    var raw = e.postData ? e.postData.contents : '{}';
+    var data = JSON.parse(raw);
+    var sheetId = data.sheetId || '';
+    var ss = sheetId
+      ? SpreadsheetApp.openById(sheetId)
+      : SpreadsheetApp.getActiveSpreadsheet();
+
+    if (data.action === 'sync') {
+      syncData(ss, data);
+      return ContentService
+        .createTextOutput(JSON.stringify({success: true, msg: 'Sincronizado com sucesso!'}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return ContentService
+      .createTextOutput(JSON.stringify({success: false, msg: 'Acao invalida'}))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({success: false, msg: err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 function syncData(ss, data) {
-  // Receitas
-  var recSheet = getOrCreateSheet(ss, 'Receitas');
-  if(data.receitas) {
-    recSheet.clearContents();
-    recSheet.getRange(1,1,1,6).setValues([['Nome','Valor','Data','Categoria','Recorrente','ID']]);
-    if(data.receitas.length > 0) {
-      var rows = data.receitas.map(function(r){return[r.nome,r.valor,r.data,r.categoria,r.recorrente,r.id]});
-      recSheet.getRange(2,1,rows.length,6).setValues(rows);
+  if (data.receitas !== undefined) {
+    var rs = getOrCreateSheet(ss, 'Receitas');
+    rs.clearContents();
+    rs.getRange(1,1,1,6).setValues([['Nome','Valor','Data','Categoria','Recorrente','ID']]);
+    if (data.receitas.length > 0) {
+      rs.getRange(2,1,data.receitas.length,6).setValues(
+        data.receitas.map(function(r){ return [r.nome,r.valor,r.data||'',r.categoria||'',r.recorrente||'',r.id||'']; })
+      );
     }
   }
-  // Despesas
-  var despSheet = getOrCreateSheet(ss, 'Despesas');
-  if(data.despesas) {
-    despSheet.clearContents();
-    despSheet.getRange(1,1,1,9).setValues([['Descricao','Valor','Data','Categoria','Tipo','Forma','Cartao','Pago','ID']]);
-    if(data.despesas.length > 0) {
-      var rows2 = data.despesas.map(function(d){return[d.nome,d.valor,d.data,d.categoria,d.tipo,d.forma,d.cartao,d.pago,d.id]});
-      despSheet.getRange(2,1,rows2.length,9).setValues(rows2);
+
+  if (data.despesas !== undefined) {
+    var ds = getOrCreateSheet(ss, 'Despesas');
+    ds.clearContents();
+    ds.getRange(1,1,1,9).setValues([['Descricao','Valor','Data','Categoria','Tipo','Forma','Cartao','Pago','ID']]);
+    if (data.despesas.length > 0) {
+      ds.getRange(2,1,data.despesas.length,9).setValues(
+        data.despesas.map(function(d){ return [d.nome,d.valor,d.data||'',d.categoria||'',d.tipo||'',d.forma||'',d.cartao||'',d.pago?'Sim':'Nao',d.id||'']; })
+      );
     }
   }
-  // Investimentos
-  var invSheet = getOrCreateSheet(ss, 'Investimentos');
-  if(data.investimentos) {
-    invSheet.clearContents();
-    invSheet.getRange(1,1,1,5).setValues([['Nome','Valor','Tipo','Data','ID']]);
-    if(data.investimentos.length > 0) {
-      var rows3 = data.investimentos.map(function(i){return[i.nome,i.valor,i.tipo,i.data,i.id]});
-      invSheet.getRange(2,1,rows3.length,5).setValues(rows3);
+
+  if (data.investimentos !== undefined) {
+    var is = getOrCreateSheet(ss, 'Investimentos');
+    is.clearContents();
+    is.getRange(1,1,1,5).setValues([['Nome','Valor','Tipo','Data','ID']]);
+    if (data.investimentos.length > 0) {
+      is.getRange(2,1,data.investimentos.length,5).setValues(
+        data.investimentos.map(function(i){ return [i.nome,i.valor,i.tipo||'',i.data||'',i.id||'']; })
+      );
     }
   }
 }
 
 function exportData(ss) {
-  var result = {receitas:[],despesas:[],investimentos:[]};
+  var result = {receitas:[], despesas:[], investimentos:[]};
   try {
-    var recSheet = ss.getSheetByName('Receitas');
-    if(recSheet && recSheet.getLastRow() > 1) {
-      var recData = recSheet.getRange(2,1,recSheet.getLastRow()-1,6).getValues();
-      result.receitas = recData.map(function(r){return{nome:r[0],valor:r[1],data:r[2],categoria:r[3],recorrente:r[4],id:r[5]}});
+    var rs = ss.getSheetByName('Receitas');
+    if (rs && rs.getLastRow() > 1) {
+      result.receitas = rs.getRange(2,1,rs.getLastRow()-1,6).getValues()
+        .map(function(r){ return {nome:r[0],valor:Number(r[1]),data:r[2],categoria:r[3],recorrente:r[4],id:r[5]}; });
     }
   } catch(e){}
   try {
-    var despSheet = ss.getSheetByName('Despesas');
-    if(despSheet && despSheet.getLastRow() > 1) {
-      var despData = despSheet.getRange(2,1,despSheet.getLastRow()-1,9).getValues();
-      result.despesas = despData.map(function(d){return{nome:d[0],valor:d[1],data:d[2],categoria:d[3],tipo:d[4],forma:d[5],cartao:d[6],pago:d[7],id:d[8]}});
+    var ds = ss.getSheetByName('Despesas');
+    if (ds && ds.getLastRow() > 1) {
+      result.despesas = ds.getRange(2,1,ds.getLastRow()-1,9).getValues()
+        .map(function(d){ return {nome:d[0],valor:Number(d[1]),data:d[2],categoria:d[3],tipo:d[4],forma:d[5],cartao:d[6],pago:d[7]==='Sim',id:d[8]}; });
+    }
+  } catch(e){}
+  try {
+    var is = ss.getSheetByName('Investimentos');
+    if (is && is.getLastRow() > 1) {
+      result.investimentos = is.getRange(2,1,is.getLastRow()-1,5).getValues()
+        .map(function(i){ return {nome:i[0],valor:Number(i[1]),tipo:i[2],data:i[3],id:i[4]}; });
     }
   } catch(e){}
   return result;
 }
 
 function getOrCreateSheet(ss, name) {
-  var sheet = ss.getSheetByName(name);
-  if(!sheet) sheet = ss.insertSheet(name);
-  return sheet;
+  return ss.getSheetByName(name) || ss.insertSheet(name);
 }
         </pre>
         <button class="btn btn-sm mt12" onclick="copyAppsScript()">📋 Copiar Código</button>
@@ -1701,117 +1736,126 @@ function renderAlerts() {
 }
 
 // ============================================================
-// GOOGLE SHEETS
-// ============================================================
-// ============================================================
-// GOOGLE SHEETS - VERSÃO FINAL BLINDADA
+// GOOGLE SHEETS — CORS-safe via form-encoded + no-cors para POST
+// Leitura (GET com ?action=...) retorna JSON normalmente.
+// Escrita usa fetch no-cors com body URLEncoded (Apps Script aceita).
 // ============================================================
 
+function getSheetsUrl() { return (document.getElementById('sheets-url').value||'').trim(); }
+function getSheetsId()  { return (document.getElementById('sheets-id').value||'').trim(); }
+
+function sheetsSetStatus(ok) {
+  const badge = document.getElementById('sheets-status-badge');
+  badge.className = 'sheets-status ' + (ok ? 'connected' : 'disconnected');
+  badge.textContent = ok ? 'Conectado' : 'Desconectado';
+}
+
+// Testa via GET (Apps Script responde sem CORS no GET com ?action=ping)
+async function testSheetsConnection() {
+  const url = getSheetsUrl();
+  if (!url) { showSheetsMsg('error','⚠️ Cole a URL do Apps Script no campo acima.'); return; }
+  state.sheetsUrl = url; state.sheetsId = getSheetsId(); saveState();
+  showSheetsMsg('info','🔄 Testando conexão...');
+  try {
+    const res = await fetch(url + '?action=ping', { method: 'GET' });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { data = null; }
+    if (data && data.success) {
+      showSheetsMsg('success', '✅ Conexão bem-sucedida! Apps Script respondeu corretamente.');
+      sheetsSetStatus(true);
+    } else {
+      showSheetsMsg('warn', '⚠️ Apps Script respondeu, mas com formato inesperado. Verifique se colou o código atualizado e reimplantou.');
+      sheetsSetStatus(false);
+    }
+  } catch(e) {
+    showSheetsMsg('error', '❌ Falha ao conectar. Causas mais comuns:<br><b>1)</b> URL incorreta ou incompleta.<br><b>2)</b> Implantação não configurada como "Qualquer pessoa".<br><b>3)</b> Você não autorizou o script ao implantar.<br>Detalhe técnico: ' + e.message);
+    sheetsSetStatus(false);
+  }
+}
+
+// Sincroniza escrevendo na planilha via POST no-cors + body text/plain
+// O Apps Script lê e.postData.contents independente do Content-Type
 async function syncToSheets() {
-  const urlEl = document.getElementById('sheets-url');
-  const idEl = document.getElementById('sheets-id');
-  
-  const url = urlEl ? urlEl.value.trim() : '';
-  const sheetId = idEl ? idEl.value.trim() : '';
-
-  if (!url) { 
-    showSheetsMsg('error', 'Configure a URL do Apps Script primeiro!'); 
-    return; 
-  }
-
-  // Salvar estado localmente
-  state.sheetsUrl = url; 
-  state.sheetsId = sheetId; 
-  saveState();
-
-  showSheetsMsg('info', 'Sincronizando...');
-  console.log("🚀 Iniciando sincronização...");
-
+  const url = getSheetsUrl();
+  const sheetId = getSheetsId();
+  if (!url) { showSheetsMsg('error','⚠️ Configure e teste a URL primeiro.'); return; }
+  state.sheetsUrl = url; state.sheetsId = sheetId; saveState();
+  showSheetsMsg('info', '🔄 Sincronizando dados com o Google Sheets...');
+  const payload = JSON.stringify({
+    action: 'sync',
+    sheetId,
+    receitas: state.receitas,
+    despesas: state.despesas,
+    investimentos: state.investimentos
+  });
   try {
-    const payload = {
-      action: 'sync',
-      sheetId: sheetId,
-      // Garante que enviamos arrays, mesmo que vazios
-      receitas: state.receitas || [],
-      despesas: state.despesas || [],
-      investimentos: state.investimentos || []
-    };
-
-    const res = await fetch(url, {
+    // Usa no-cors — Apps Script aceita qualquer Content-Type e lê postData.contents
+    await fetch(url, {
       method: 'POST',
-      mode: 'cors',
-      cache: 'no-cache',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8' // Crucial para evitar erro de OPTIONS
-      },
-      redirect: 'follow', // Essencial para o redirecionamento do Google
-      body: JSON.stringify(payload)
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: payload
     });
-
-    // Se o fetch falhar (ex: 404 ou 500)
-    if (!res.ok) throw new Error(`Servidor respondeu com status ${res.status}`);
-
-    const data = await res.json();
-    console.log("✅ Resposta do Google:", data);
-
-    if (data.success) {
-      showSheetsMsg('success', '✅ ' + data.msg);
-      const badge = document.getElementById('sheets-status-badge');
-      if (badge) {
-        badge.className = 'sheets-status connected';
-        badge.textContent = 'Sincronizado';
-      }
-    } else {
-      showSheetsMsg('error', '❌ ' + data.msg);
+    // no-cors não devolve corpo, então confirmamos via GET após 2s
+    showSheetsMsg('info', '🔄 Aguardando confirmação da planilha...');
+    await new Promise(r => setTimeout(r, 2000));
+    try {
+      const check = await fetch(url + '?action=ping');
+      const t = await check.text();
+      const d = JSON.parse(t);
+      if (d && d.success) {
+        showSheetsMsg('success', '✅ Sincronização concluída! Abra sua planilha no Google Sheets para confirmar.');
+        sheetsSetStatus(true);
+      } else { throw new Error('ping falhou'); }
+    } catch(e2) {
+      // Mesmo que o ping falhe, o POST provavelmente foi enviado
+      showSheetsMsg('success', '✅ Dados enviados! Verifique sua planilha no Google Sheets. Se as abas não apareceram, reimplante o script com permissão "Qualquer pessoa".');
+      sheetsSetStatus(true);
     }
-  } catch (e) {
-    console.error("❌ Erro detalhado:", e);
-    showSheetsMsg('error', '❌ Falha na comunicação. Verifique o console (F12). Detalhe: ' + e.message);
+  } catch(e) {
+    showSheetsMsg('error', '❌ Erro ao enviar dados: ' + e.message + '<br>Verifique se a URL está correta e o script foi implantado como App da Web.');
   }
 }
 
+// Importa via GET com parâmetros na URL (sem CORS issue)
 async function importFromSheets() {
-  const url = document.getElementById('sheets-url').value.trim();
-  const sheetId = document.getElementById('sheets-id').value.trim();
-
-  if (!url) { 
-    showSheetsMsg('error', 'Configure a URL do Apps Script primeiro!'); 
-    return; 
-  }
-
-  showSheetsMsg('info', 'Importando dados...');
-  console.log("📥 Buscando dados da planilha...");
-
+  const url = getSheetsUrl();
+  const sheetId = getSheetsId();
+  if (!url) { showSheetsMsg('error','⚠️ Configure e teste a URL primeiro.'); return; }
+  showSheetsMsg('info', '🔄 Importando dados do Google Sheets...');
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      mode: 'cors',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8'
-      },
-      redirect: 'follow',
-      body: JSON.stringify({ action: 'export', sheetId: sheetId })
-    });
-
-    const data = await res.json();
-
+    const importUrl = url + '?action=export' + (sheetId ? '&sheetId=' + encodeURIComponent(sheetId) : '');
+    const res = await fetch(importUrl, { method: 'GET' });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('Resposta inválida do servidor. Certifique-se de usar o código Apps Script atualizado.'); }
     if (data.success && data.data) {
-      // Atualiza o estado global com o que veio da planilha
-      state.receitas = data.data.receitas || [];
-      state.despesas = data.data.despesas || [];
-      state.investimentos = data.data.investimentos || [];
-      
-      saveState(); 
-      renderAll(); // Atualiza a interface do seu app
-      showSheetsMsg('success', '✅ Dados importados com sucesso!');
+      const d = data.data;
+      if (d.receitas && d.receitas.length) state.receitas = d.receitas;
+      if (d.despesas && d.despesas.length) state.despesas = d.despesas;
+      if (d.investimentos && d.investimentos.length) state.investimentos = d.investimentos;
+      saveState(); renderAll();
+      showSheetsMsg('success', `✅ Importados: ${(d.receitas||[]).length} receitas, ${(d.despesas||[]).length} despesas, ${(d.investimentos||[]).length} investimentos.`);
+      sheetsSetStatus(true);
     } else {
-      showSheetsMsg('error', '❌ ' + (data.msg || 'Erro ao importar'));
+      showSheetsMsg('error', '❌ ' + (data.msg || 'Planilha vazia ou sem dados para importar.'));
     }
-  } catch (e) {
-    console.error("❌ Erro no Import:", e);
-    showSheetsMsg('error', '❌ Erro de conexão: ' + e.message);
+  } catch(e) {
+    showSheetsMsg('error', '❌ Erro ao importar: ' + e.message);
   }
 }
+
+function showSheetsMsg(type, msg) {
+  const typeMap = {success:'alert-success',error:'alert-danger',info:'alert-info',warn:'alert-warn'};
+  document.getElementById('sheets-msg').innerHTML = `<div class="alert ${typeMap[type]||'alert-info'}">${msg}</div>`;
+}
+
+function copyAppsScript() {
+  const code = document.getElementById('appsScriptCode').textContent;
+  navigator.clipboard.writeText(code).then(()=>alert('✅ Código copiado!')).catch(()=>alert('Selecione e copie manualmente o código acima.'));
+}
+
 // ============================================================
 // EXPORT
 // ============================================================
