@@ -169,20 +169,33 @@ main{flex:1;padding:24px;overflow-y:auto;max-width:1400px}
 /* SPLIT */
 .split{display:grid;grid-template-columns:1.5fr 1fr;gap:20px}
 
+/* BOTTOM NAV MOBILE */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);z-index:200;height:60px;align-items:stretch}
+.bottom-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:transparent;color:var(--text3);font-size:9px;font-family:var(--font);font-weight:500;cursor:pointer;padding:4px 2px;transition:color .2s;-webkit-tap-highlight-color:transparent}
+.bottom-nav-item .bn-icon{font-size:20px;line-height:1}
+.bottom-nav-item.active{color:var(--accent)}
+.bottom-nav-item:active{opacity:.7}
+
 /* RESP */
 @media(max-width:900px){
   .grid4{grid-template-columns:1fr 1fr}
   .grid3{grid-template-columns:1fr 1fr}
   .split{grid-template-columns:1fr}
   nav .nav-tabs{display:none}
+  .nav-actions .month-label{font-size:12px;min-width:90px}
   .form-row3{grid-template-columns:1fr 1fr}
+  .bottom-nav{display:flex}
+  main{padding-bottom:72px}
 }
 @media(max-width:600px){
-  main{padding:12px}
+  main{padding:12px;padding-bottom:72px}
   .grid4,.grid3,.grid2{grid-template-columns:1fr}
   .form-row,.form-row3{grid-template-columns:1fr}
-  .modal{padding:20px;margin:12px}
+  .modal{padding:20px;margin:12px;max-height:85vh}
   .metric-val{font-size:20px}
+  nav{padding:0 12px}
+  .nav-logo{font-size:15px}
+  .nav-logo span{width:28px;height:28px;font-size:12px}
 }
 
 /* SHEETS CONFIG */
@@ -248,12 +261,24 @@ main{flex:1;padding:24px;overflow-y:auto;max-width:1400px}
     <button class="nav-tab" onclick="showPage('configuracoes')">⚙️ Config</button>
   </div>
   <div class="nav-actions">
+    <span id="sync-indicator" style="font-size:11px;color:var(--text3);margin-right:8px"></span>
     <div class="month-sel">
       <button class="month-btn" onclick="changeMonth(-1)">◀</button>
       <span class="month-label" id="monthLabel">Maio 2026</span>
       <button class="month-btn" onclick="changeMonth(1)">▶</button>
     </div>
   </div>
+</nav>
+
+<!-- BOTTOM NAV — mobile -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bottom-nav-item active" onclick="showPage('dashboard',this)"><span class="bn-icon">📊</span>Dashboard</button>
+  <button class="bottom-nav-item" onclick="showPage('receitas',this)"><span class="bn-icon">💰</span>Receitas</button>
+  <button class="bottom-nav-item" onclick="showPage('despesas',this)"><span class="bn-icon">💸</span>Despesas</button>
+  <button class="bottom-nav-item" onclick="showPage('cartoes',this)"><span class="bn-icon">🃏</span>Cartões</button>
+  <button class="bottom-nav-item" onclick="showPage('investimentos',this)"><span class="bn-icon">📈</span>Invest.</button>
+  <button class="bottom-nav-item" onclick="showPage('relatorios',this)"><span class="bn-icon">📋</span>Relatórios</button>
+  <button class="bottom-nav-item" onclick="showPage('configuracoes',this)"><span class="bn-icon">⚙️</span>Config</button>
 </nav>
 
 <div class="app-body">
@@ -576,11 +601,16 @@ main{flex:1;padding:24px;overflow-y:auto;max-width:1400px}
   <div class="card mb20">
     <div class="card-hdr">
       <span class="card-title">🔗 Integração Google Sheets</span>
-      <span class="sheets-status" id="sheets-status-badge">Desconectado</span>
+      <span class="sheets-status disconnected" id="sheets-status-badge">Desconectado</span>
+    </div>
+    <!-- Banner de status da vinculação -->
+    <div id="sheets-linked-banner" style="display:none;padding:10px 14px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:var(--r2);margin-bottom:16px;font-size:13px;display:flex;align-items:center;gap:10px">
+      <span>☁️</span>
+      <span>Planilha vinculada. Dados sincronizam automaticamente em todos os dispositivos ao adicionar lançamentos.</span>
     </div>
     <div class="alert alert-info mb16">
       <span>ℹ️</span>
-      <span>Configure um Google Apps Script para sincronizar seus dados com o Google Sheets. Todos os lançamentos serão exportados automaticamente.</span>
+      <span>O Google Sheets funciona como banco de dados compartilhado entre todos os seus dispositivos. Uma vez vinculado, os dados ficam disponíveis em qualquer lugar.</span>
     </div>
     <div class="form-row mb16">
       <div class="form-group" style="margin-bottom:0">
@@ -592,10 +622,10 @@ main{flex:1;padding:24px;overflow-y:auto;max-width:1400px}
         <input type="text" class="form-control" id="sheets-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
       </div>
     </div>
-    <div class="flex gap8">
-      <button class="btn btn-primary" onclick="testSheetsConnection()">🔌 Testar Conexão</button>
-      <button class="btn btn-success" onclick="syncToSheets()">☁️ Sincronizar Agora</button>
-      <button class="btn" onclick="importFromSheets()">⬇️ Importar do Sheets</button>
+    <div class="flex gap8" style="flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="testSheetsConnection()">🔌 Testar e Vincular</button>
+      <button class="btn btn-success" onclick="syncToSheets()">☁️ Enviar para Planilha</button>
+      <button class="btn" onclick="loadFromSheets(true)">⬇️ Buscar da Planilha</button>
     </div>
     <div id="sheets-msg" class="mt12"></div>
     
@@ -1080,30 +1110,170 @@ let state = {
   sheetsId: '',
 };
 
-// Load from localStorage
-function loadState() {
+// ============================================================
+// PERSISTÊNCIA — Google Sheets é o banco de dados principal.
+// localStorage é apenas cache offline/velocidade de carregamento.
+// Fluxo:
+//   1. Ao abrir: carrega cache local imediatamente (UX rápida)
+//   2. Se Sheets configurado: puxa dados frescos do Sheets em background
+//   3. Ao salvar qualquer dado: persiste local + sincroniza Sheets automaticamente
+// ============================================================
+
+const LS_KEY = 'financeflow_v3';
+const LS_CONFIG_KEY = 'financeflow_config'; // URL + ID ficam separados, persistem sempre
+
+function loadConfig() {
   try {
-    const saved = localStorage.getItem('financeflow_v2');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      Object.assign(state, parsed);
+    const cfg = JSON.parse(localStorage.getItem(LS_CONFIG_KEY)||'{}');
+    if (cfg.sheetsUrl) state.sheetsUrl = cfg.sheetsUrl;
+    if (cfg.sheetsId)  state.sheetsId  = cfg.sheetsId;
+    if (cfg.metas)     state.metas     = cfg.metas;
+    if (cfg.cartoes)   state.cartoes   = cfg.cartoes;
+  } catch(e){}
+}
+
+function saveConfig() {
+  localStorage.setItem(LS_CONFIG_KEY, JSON.stringify({
+    sheetsUrl: state.sheetsUrl,
+    sheetsId:  state.sheetsId,
+    metas:     state.metas,
+    cartoes:   state.cartoes,
+  }));
+}
+
+function loadCacheData() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_KEY)||'{}');
+    if (saved.receitas)     state.receitas     = saved.receitas;
+    if (saved.despesas)     state.despesas     = saved.despesas;
+    if (saved.investimentos)state.investimentos= saved.investimentos;
+  } catch(e){}
+}
+
+function saveCacheData() {
+  localStorage.setItem(LS_KEY, JSON.stringify({
+    receitas:      state.receitas,
+    despesas:      state.despesas,
+    investimentos: state.investimentos,
+  }));
+}
+
+// Chamado sempre que o usuário altera dados financeiros
+async function saveState() {
+  saveCacheData();   // salva local imediatamente (síncrono)
+  saveConfig();
+  // Sincroniza Sheets em background (sem bloquear UI)
+  if (state.sheetsUrl && state.sheetsId) {
+    autoSyncToSheets();
+  }
+}
+
+// Sincronização automática silenciosa (sem mensagens na tela)
+let _syncTimer = null;
+function autoSyncToSheets() {
+  // Debounce — aguarda 1.5s de inatividade antes de enviar
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(async () => {
+    const url = state.sheetsUrl;
+    const sheetId = state.sheetsId;
+    if (!url || !sheetId) return;
+    try {
+      const payload = JSON.stringify({
+        action: 'sync', sheetId,
+        receitas: state.receitas,
+        despesas: state.despesas,
+        investimentos: state.investimentos,
+      });
+      await fetch(url, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        body: payload
+      });
+      setSyncIndicator('ok');
+    } catch(e) {
+      setSyncIndicator('error');
     }
-  } catch(e) {}
-  // Set default date inputs
+  }, 1500);
+}
+
+function setSyncIndicator(status) {
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+  if (status === 'ok') {
+    el.textContent = '☁️ Sincronizado';
+    el.style.color = 'var(--green)';
+  } else if (status === 'syncing') {
+    el.textContent = '🔄 Sincronizando...';
+    el.style.color = 'var(--yellow)';
+  } else {
+    el.textContent = '⚠️ Sem sync';
+    el.style.color = 'var(--red)';
+  }
+}
+
+// Carrega dados FRESCOS do Sheets (chamado no boot e ao entrar em Config)
+async function loadFromSheets(showMsg) {
+  const url = state.sheetsUrl;
+  const sheetId = state.sheetsId;
+  if (!url || !sheetId) return false;
+  if (showMsg) showSheetsMsg('info','🔄 Carregando dados da planilha...');
+  setSyncIndicator('syncing');
+  try {
+    const res = await fetch(url + '?action=export&sheetId=' + encodeURIComponent(sheetId), {
+      method: 'GET', redirect: 'follow'
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const data = JSON.parse(text);
+    if (data.success && data.data) {
+      const d = data.data;
+      let changed = false;
+      if (d.receitas && Array.isArray(d.receitas))      { state.receitas      = d.receitas;      changed = true; }
+      if (d.despesas && Array.isArray(d.despesas))      { state.despesas      = d.despesas;      changed = true; }
+      if (d.investimentos && Array.isArray(d.investimentos)) { state.investimentos = d.investimentos; changed = true; }
+      if (changed) { saveCacheData(); renderAll(); }
+      setSyncIndicator('ok');
+      if (showMsg) {
+        const total = (d.receitas||[]).length + (d.despesas||[]).length + (d.investimentos||[]).length;
+        showSheetsMsg('success', total > 0
+          ? `✅ ${(d.receitas||[]).length} receitas, ${(d.despesas||[]).length} despesas e ${(d.investimentos||[]).length} investimentos carregados.`
+          : '✅ Conectado. Planilha ainda sem dados — adicione lançamentos e eles aparecerão em todos os dispositivos.'
+        );
+        sheetsSetStatus(true);
+      }
+      return true;
+    } else {
+      if (showMsg) showSheetsMsg('warn','⚠️ '+(data.msg||'Sem dados na planilha.'));
+      return false;
+    }
+  } catch(e) {
+    setSyncIndicator('error');
+    if (showMsg) showSheetsMsg('error','❌ Erro ao carregar: '+e.message);
+    return false;
+  }
+}
+
+function loadState() {
+  loadConfig();
+  loadCacheData();
+  // Preenche campos de configuração
   const today = new Date().toISOString().split('T')[0];
   ['lanc-data','rec-data','desp-data','inv-data'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = today;
   });
-  document.getElementById('sheets-url').value = state.sheetsUrl||'';
-  document.getElementById('sheets-id').value = state.sheetsId||'';
+  const urlEl = document.getElementById('sheets-url');
+  const idEl  = document.getElementById('sheets-id');
+  if(urlEl) urlEl.value = state.sheetsUrl||'';
+  if(idEl)  idEl.value  = state.sheetsId||'';
   document.getElementById('meta-essenciais').value = state.metas.essenciais||50;
-  document.getElementById('meta-variaveis').value = state.metas.variaveis||30;
-  document.getElementById('meta-objetivos').value = state.metas.objetivos||20;
-}
-
-function saveState() {
-  localStorage.setItem('financeflow_v2', JSON.stringify(state));
+  document.getElementById('meta-variaveis').value  = state.metas.variaveis||30;
+  document.getElementById('meta-objetivos').value  = state.metas.objetivos||20;
+  // Se já vinculado, mostra banner de status
+  if (state.sheetsUrl && state.sheetsId) {
+    sheetsSetStatus(true);
+  }
 }
 
 // ============================================================
@@ -1150,12 +1320,23 @@ function formaBadge(forma) {
 // ============================================================
 // NAV
 // ============================================================
-function showPage(id) {
+function showPage(id, callerBtn) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.bottom-nav-item').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  const tabs = document.querySelectorAll('.nav-tab');
-  tabs.forEach(t=>{ if(t.getAttribute('onclick')&&t.getAttribute('onclick').includes("'"+id+"'")) t.classList.add('active'); });
+  // highlight desktop nav tab
+  document.querySelectorAll('.nav-tab').forEach(t=>{
+    if(t.getAttribute('onclick')&&t.getAttribute('onclick').includes("'"+id+"'")) t.classList.add('active');
+  });
+  // highlight bottom nav item
+  if (callerBtn) {
+    callerBtn.classList.add('active');
+  } else {
+    document.querySelectorAll('.bottom-nav-item').forEach(t=>{
+      if(t.getAttribute('onclick')&&t.getAttribute('onclick').includes("'"+id+"'")) t.classList.add('active');
+    });
+  }
   if(id==='relatorios') renderRelatorios();
   if(id==='cartoes') renderCartoes();
   if(id==='configuracoes') renderConfigCartoes();
@@ -1263,7 +1444,7 @@ function saveCartao() {
   const limite = parseFloat(document.getElementById('cart-limite').value)||0;
   if (!nome) return alert('Informe o nome do cartão!');
   state.cartoes.push({id:uid(),nome,bandeira:document.getElementById('cart-bandeira').value,limite,fechamento:parseInt(document.getElementById('cart-fechamento').value)||15,cor:document.getElementById('cart-cor').value});
-  saveState(); renderAll(); closeModal('modalCartao');
+  saveConfig(); renderAll(); closeModal('modalCartao');
   document.getElementById('cart-nome').value=''; document.getElementById('cart-limite').value='';
 }
 
@@ -1279,7 +1460,7 @@ function saveInvestimento() {
 
 function saveMetas() {
   state.metas = {essenciais:parseInt(document.getElementById('meta-essenciais').value)||50,variaveis:parseInt(document.getElementById('meta-variaveis').value)||30,objetivos:parseInt(document.getElementById('meta-objetivos').value)||20};
-  saveState(); alert('✅ Metas salvas com sucesso!');
+  saveConfig(); alert('✅ Metas salvas com sucesso!');
 }
 
 // ============================================================
@@ -1298,7 +1479,7 @@ function deleteDespesa(id) {
 function deleteCartao(id) {
   if (!confirm('Excluir este cartão?')) return;
   state.cartoes = state.cartoes.filter(c=>c.id!==id);
-  saveState(); renderAll();
+  saveConfig(); renderAll();
 }
 function deleteInvestimento(id) {
   if (!confirm('Excluir este investimento?')) return;
@@ -1768,6 +1949,8 @@ function sheetsSetStatus(ok) {
   const b = document.getElementById('sheets-status-badge');
   b.className = 'sheets-status ' + (ok ? 'connected' : 'disconnected');
   b.textContent = ok ? 'Conectado ✅' : 'Desconectado';
+  const banner = document.getElementById('sheets-linked-banner');
+  if (banner) banner.style.display = ok ? 'flex' : 'none';
 }
 
 // GET simples — Apps Script permite GET de qualquer origem
@@ -1778,31 +1961,35 @@ async function testSheetsConnection() {
     showSheetsMsg('error','⚠️ URL inválida. Deve começar com https://script.google.com/macros/s/...');
     return;
   }
-  state.sheetsUrl = url; state.sheetsId = getSheetsId(); saveState();
+  // Persiste configuração imediatamente — vinculação permanente
+  state.sheetsUrl = url;
+  state.sheetsId  = getSheetsId();
+  saveConfig();
   showSheetsMsg('info','🔄 Testando conexão com o Apps Script...');
   try {
     const res = await fetch(url + '?action=ping', { method: 'GET', redirect: 'follow' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
     let data;
-    try { data = JSON.parse(text); } catch(e) {
-      throw new Error('Resposta não é JSON. Certifique-se de que o código Apps Script foi colado corretamente e reimplantado.');
-    }
+    try { data = JSON.parse(text); }
+    catch(e) { throw new Error('Resposta não é JSON. Certifique-se de que o código Apps Script foi colado corretamente e reimplantado.'); }
     if (data && data.success) {
-      showSheetsMsg('success', '✅ Conexão bem-sucedida! Apps Script respondeu: "' + data.msg + '"');
+      showSheetsMsg('success', '✅ Conexão bem-sucedida! Carregando dados da planilha...');
       sheetsSetStatus(true);
+      // Carrega dados imediatamente após confirmar conexão
+      await loadFromSheets(true);
     } else {
-      showSheetsMsg('warn', '⚠️ Apps Script respondeu, mas sem sucesso: ' + (data.msg||'resposta inesperada') + '. Reimplante o script.');
+      showSheetsMsg('warn', '⚠️ Apps Script respondeu, mas sem sucesso: '+(data.msg||'resposta inesperada')+'. Reimplante o script.');
     }
   } catch(e) {
     showSheetsMsg('error',
-      '❌ Falha na conexão.<br><br>' +
-      '<b>Causas mais comuns:</b><br>' +
-      '• URL incorreta ou copiada incompleta<br>' +
-      '• Implantação não configurada como "Qualquer pessoa"<br>' +
-      '• Script não foi autorizado ao implantar<br>' +
-      '• Reimplantação necessária após alterar o código<br><br>' +
-      '<b>Detalhe:</b> ' + e.message
+      '❌ Falha na conexão.<br><br>'+
+      '<b>Causas mais comuns:</b><br>'+
+      '• URL incorreta ou copiada incompleta<br>'+
+      '• Implantação não configurada como "Qualquer pessoa"<br>'+
+      '• Script não autorizado ao implantar<br>'+
+      '• Reimplantação necessária após alterar o código<br><br>'+
+      '<b>Detalhe:</b> '+e.message
     );
     sheetsSetStatus(false);
   }
@@ -1815,7 +2002,7 @@ async function syncToSheets() {
   const sheetId = getSheetsId();
   if (!url) { showSheetsMsg('error','⚠️ Configure e teste a URL primeiro.'); return; }
   if (!sheetId) { showSheetsMsg('error','⚠️ Informe o ID da planilha no campo acima.'); return; }
-  state.sheetsUrl = url; state.sheetsId = sheetId; saveState();
+  state.sheetsUrl = url; state.sheetsId = sheetId; saveConfig();
   showSheetsMsg('info', '🔄 Enviando dados para o Google Sheets...');
   const payload = JSON.stringify({
     action: 'sync', sheetId,
@@ -1930,7 +2117,7 @@ function clearAllData() {
   if (!confirm('⚠️ ATENÇÃO: Isso irá apagar TODOS os dados permanentemente. Continuar?')) return;
   if (!confirm('Tem certeza? Esta ação não pode ser desfeita!')) return;
   state.receitas=[]; state.despesas=[]; state.cartoes=[]; state.investimentos=[];
-  saveState(); renderAll(); alert('✅ Todos os dados foram removidos.');
+  saveCacheData(); saveConfig(); renderAll(); alert('✅ Todos os dados foram removidos.');
 }
 
 // ============================================================
@@ -1946,6 +2133,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const el = document.getElementById(id);
     if(el && !el.value) el.value = today;
   });
+  // Se Sheets configurado, puxa dados frescos em background após 800ms
+  // (tempo para o app renderizar o cache local primeiro)
+  if (state.sheetsUrl && state.sheetsId) {
+    setSyncIndicator('syncing');
+    setTimeout(() => loadFromSheets(false), 800);
+  }
 });
 </script>
 </body>
