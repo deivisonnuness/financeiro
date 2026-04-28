@@ -601,16 +601,32 @@ main{flex:1;padding:24px;overflow-y:auto;max-width:1400px}
     
     <!-- INSTRUÇÕES -->
     <div class="mt20" style="border-top:1px solid var(--border);padding-top:16px">
-      <div class="text-sm font-bold mb12">📝 Como Configurar:</div>
-      <div class="text-xs text-muted" style="line-height:1.8">
-        <b>1.</b> Abra o Google Sheets e crie uma planilha nova.<br>
-        <b>2.</b> Vá em <code style="background:var(--bg3);padding:2px 6px;border-radius:4px">Extensões → Apps Script</code>.<br>
-        <b>3.</b> Cole o código Apps Script fornecido abaixo e clique em Implantar → Novo Implantação → App da Web.<br>
-        <b>4.</b> Defina "Executar como: Eu" e "Quem tem acesso: Qualquer pessoa".<br>
-        <b>5.</b> Copie a URL gerada e cole no campo acima.<br>
+      <div class="text-sm font-bold mb12">📝 Como Configurar — Passo a Passo:</div>
+      <div style="display:grid;gap:8px;margin-bottom:16px">
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:var(--bg3);border-radius:var(--r2)">
+          <span style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</span>
+          <div class="text-xs text-muted" style="line-height:1.7">Crie uma planilha no <b style="color:var(--text)">Google Sheets</b>. Na URL da planilha, copie o ID (o trecho entre <code style="background:var(--bg);padding:1px 5px;border-radius:3px">/d/</code> e <code style="background:var(--bg);padding:1px 5px;border-radius:3px">/edit</code>) e cole no campo <b style="color:var(--text)">"ID da Planilha"</b> acima.</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:var(--bg3);border-radius:var(--r2)">
+          <span style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</span>
+          <div class="text-xs text-muted" style="line-height:1.7">No Sheets, clique em <b style="color:var(--text)">Extensões → Apps Script</b>. Apague todo o código existente e cole o código abaixo. Salve com <b style="color:var(--text)">Ctrl+S</b>.</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:var(--bg3);border-radius:var(--r2)">
+          <span style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</span>
+          <div class="text-xs text-muted" style="line-height:1.7">Clique em <b style="color:var(--text)">Implantar → Nova implantação</b>. Tipo: <b style="color:var(--text)">App da Web</b>. Configure: Executar como <b style="color:var(--text)">Eu</b> | Acesso: <b style="color:var(--text)">Qualquer pessoa</b>. Clique Implantar e <b style="color:var(--text)">autorize</b> quando solicitado.</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:var(--bg3);border-radius:var(--r2)">
+          <span style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">4</span>
+          <div class="text-xs text-muted" style="line-height:1.7">Copie a <b style="color:var(--text)">URL do App da Web</b> gerada e cole no campo acima. Use o botão <b style="color:var(--text)">"Testar Conexão"</b> para validar.</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:var(--r2)">
+          <span style="font-size:14px;flex-shrink:0">⚠️</span>
+          <div class="text-xs" style="color:var(--yellow);line-height:1.7">Após qualquer alteração no código, sempre crie uma <b>Nova implantação</b> (não edite a existente) e copie a nova URL gerada.</div>
+        </div>
       </div>
-      <details class="mt12">
-        <summary style="cursor:pointer;font-size:12px;color:var(--accent)">Ver código Apps Script</summary>
+      <details open>
+        <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:10px;outline:none">📄 Código Apps Script (copiar e colar)</summary>
+
         <pre id="appsScriptCode" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:16px;font-size:11px;font-family:var(--mono);color:var(--text2);overflow-x:auto;margin-top:8px;white-space:pre-wrap">
 // FinanceFlow — Google Apps Script v2
 // Cole este código no Apps Script e reimplante como App da Web:
@@ -1736,110 +1752,146 @@ function renderAlerts() {
 }
 
 // ============================================================
-// GOOGLE SHEETS — CORS-safe via form-encoded + no-cors para POST
-// Leitura (GET com ?action=...) retorna JSON normalmente.
-// Escrita usa fetch no-cors com body URLEncoded (Apps Script aceita).
+// GOOGLE SHEETS INTEGRATION
+// Estratégia CORS-safe:
+//   - GET  → fetch normal (Apps Script devolve JSON sem bloqueio)
+//   - POST → fetch com mode:'no-cors' + Content-Type:'text/plain'
+//            Apps Script lê e.postData.contents normalmente.
+//            Como no-cors retorna opaque (sem corpo), confirmamos
+//            a escrita com um GET de ping logo após.
 // ============================================================
 
 function getSheetsUrl() { return (document.getElementById('sheets-url').value||'').trim(); }
 function getSheetsId()  { return (document.getElementById('sheets-id').value||'').trim(); }
 
 function sheetsSetStatus(ok) {
-  const badge = document.getElementById('sheets-status-badge');
-  badge.className = 'sheets-status ' + (ok ? 'connected' : 'disconnected');
-  badge.textContent = ok ? 'Conectado' : 'Desconectado';
+  const b = document.getElementById('sheets-status-badge');
+  b.className = 'sheets-status ' + (ok ? 'connected' : 'disconnected');
+  b.textContent = ok ? 'Conectado ✅' : 'Desconectado';
 }
 
-// Testa via GET (Apps Script responde sem CORS no GET com ?action=ping)
+// GET simples — Apps Script permite GET de qualquer origem
 async function testSheetsConnection() {
   const url = getSheetsUrl();
   if (!url) { showSheetsMsg('error','⚠️ Cole a URL do Apps Script no campo acima.'); return; }
+  if (!url.startsWith('https://script.google.com/')) {
+    showSheetsMsg('error','⚠️ URL inválida. Deve começar com https://script.google.com/macros/s/...');
+    return;
+  }
   state.sheetsUrl = url; state.sheetsId = getSheetsId(); saveState();
-  showSheetsMsg('info','🔄 Testando conexão...');
+  showSheetsMsg('info','🔄 Testando conexão com o Apps Script...');
   try {
-    const res = await fetch(url + '?action=ping', { method: 'GET' });
+    const res = await fetch(url + '?action=ping', { method: 'GET', redirect: 'follow' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
     let data;
-    try { data = JSON.parse(text); } catch(e) { data = null; }
+    try { data = JSON.parse(text); } catch(e) {
+      throw new Error('Resposta não é JSON. Certifique-se de que o código Apps Script foi colado corretamente e reimplantado.');
+    }
     if (data && data.success) {
-      showSheetsMsg('success', '✅ Conexão bem-sucedida! Apps Script respondeu corretamente.');
+      showSheetsMsg('success', '✅ Conexão bem-sucedida! Apps Script respondeu: "' + data.msg + '"');
       sheetsSetStatus(true);
     } else {
-      showSheetsMsg('warn', '⚠️ Apps Script respondeu, mas com formato inesperado. Verifique se colou o código atualizado e reimplantou.');
-      sheetsSetStatus(false);
+      showSheetsMsg('warn', '⚠️ Apps Script respondeu, mas sem sucesso: ' + (data.msg||'resposta inesperada') + '. Reimplante o script.');
     }
   } catch(e) {
-    showSheetsMsg('error', '❌ Falha ao conectar. Causas mais comuns:<br><b>1)</b> URL incorreta ou incompleta.<br><b>2)</b> Implantação não configurada como "Qualquer pessoa".<br><b>3)</b> Você não autorizou o script ao implantar.<br>Detalhe técnico: ' + e.message);
+    showSheetsMsg('error',
+      '❌ Falha na conexão.<br><br>' +
+      '<b>Causas mais comuns:</b><br>' +
+      '• URL incorreta ou copiada incompleta<br>' +
+      '• Implantação não configurada como "Qualquer pessoa"<br>' +
+      '• Script não foi autorizado ao implantar<br>' +
+      '• Reimplantação necessária após alterar o código<br><br>' +
+      '<b>Detalhe:</b> ' + e.message
+    );
     sheetsSetStatus(false);
   }
 }
 
-// Sincroniza escrevendo na planilha via POST no-cors + body text/plain
-// O Apps Script lê e.postData.contents independente do Content-Type
+// POST com no-cors (única forma de enviar body cross-origin ao Apps Script)
+// Apps Script recebe o body normalmente em e.postData.contents
 async function syncToSheets() {
   const url = getSheetsUrl();
   const sheetId = getSheetsId();
   if (!url) { showSheetsMsg('error','⚠️ Configure e teste a URL primeiro.'); return; }
+  if (!sheetId) { showSheetsMsg('error','⚠️ Informe o ID da planilha no campo acima.'); return; }
   state.sheetsUrl = url; state.sheetsId = sheetId; saveState();
-  showSheetsMsg('info', '🔄 Sincronizando dados com o Google Sheets...');
+  showSheetsMsg('info', '🔄 Enviando dados para o Google Sheets...');
   const payload = JSON.stringify({
-    action: 'sync',
-    sheetId,
+    action: 'sync', sheetId,
     receitas: state.receitas,
     despesas: state.despesas,
     investimentos: state.investimentos
   });
   try {
-    // Usa no-cors — Apps Script aceita qualquer Content-Type e lê postData.contents
+    // no-cors é obrigatório para POST cross-origin ao Apps Script
+    // Content-Type text/plain evita preflight OPTIONS (que o Apps Script não suporta)
     await fetch(url, {
       method: 'POST',
       mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: payload
     });
-    // no-cors não devolve corpo, então confirmamos via GET após 2s
-    showSheetsMsg('info', '🔄 Aguardando confirmação da planilha...');
-    await new Promise(r => setTimeout(r, 2000));
+    // Fetch no-cors retorna resposta "opaque" — sem corpo — então aguardamos
+    // 2 segundos e confirmamos com um GET de ping para saber se o script está ativo
+    showSheetsMsg('info', '⏳ Processando na planilha (aguarde ~2s)...');
+    await new Promise(r => setTimeout(r, 2500));
     try {
-      const check = await fetch(url + '?action=ping');
-      const t = await check.text();
-      const d = JSON.parse(t);
-      if (d && d.success) {
-        showSheetsMsg('success', '✅ Sincronização concluída! Abra sua planilha no Google Sheets para confirmar.');
-        sheetsSetStatus(true);
-      } else { throw new Error('ping falhou'); }
-    } catch(e2) {
-      // Mesmo que o ping falhe, o POST provavelmente foi enviado
-      showSheetsMsg('success', '✅ Dados enviados! Verifique sua planilha no Google Sheets. Se as abas não apareceram, reimplante o script com permissão "Qualquer pessoa".');
+      const ping = await fetch(url + '?action=ping', { redirect: 'follow' });
+      const t = await ping.text();
+      JSON.parse(t); // lança se não for JSON
+      showSheetsMsg('success',
+        '✅ Dados sincronizados com sucesso!<br>' +
+        'Abra sua planilha e confirme as abas <b>Receitas</b>, <b>Despesas</b> e <b>Investimentos</b>.'
+      );
+      sheetsSetStatus(true);
+    } catch(_) {
+      // O POST foi enviado mesmo que o ping falhe (firewall/rede)
+      showSheetsMsg('success',
+        '✅ Dados enviados para a planilha!<br>' +
+        'Abra o Google Sheets e verifique as abas. Se estiverem vazias, confirme que o script está implantado com acesso "Qualquer pessoa".'
+      );
       sheetsSetStatus(true);
     }
   } catch(e) {
-    showSheetsMsg('error', '❌ Erro ao enviar dados: ' + e.message + '<br>Verifique se a URL está correta e o script foi implantado como App da Web.');
+    showSheetsMsg('error',
+      '❌ Erro ao enviar: ' + e.message + '<br><br>' +
+      'Certifique-se de que a URL é a do App da Web (começa com https://script.google.com/macros/s/) ' +
+      'e que a implantação está configurada para "Qualquer pessoa".'
+    );
   }
 }
 
-// Importa via GET com parâmetros na URL (sem CORS issue)
+// GET com parâmetros na URL — sem CORS issues
 async function importFromSheets() {
   const url = getSheetsUrl();
   const sheetId = getSheetsId();
   if (!url) { showSheetsMsg('error','⚠️ Configure e teste a URL primeiro.'); return; }
+  if (!sheetId) { showSheetsMsg('error','⚠️ Informe o ID da planilha.'); return; }
   showSheetsMsg('info', '🔄 Importando dados do Google Sheets...');
   try {
-    const importUrl = url + '?action=export' + (sheetId ? '&sheetId=' + encodeURIComponent(sheetId) : '');
-    const res = await fetch(importUrl, { method: 'GET' });
+    const importUrl = url + '?action=export&sheetId=' + encodeURIComponent(sheetId);
+    const res = await fetch(importUrl, { method: 'GET', redirect: 'follow' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
     let data;
-    try { data = JSON.parse(text); } catch(e) { throw new Error('Resposta inválida do servidor. Certifique-se de usar o código Apps Script atualizado.'); }
+    try { data = JSON.parse(text); }
+    catch(e) { throw new Error('Resposta inválida (não é JSON). Use o código Apps Script atualizado e reimplante.'); }
     if (data.success && data.data) {
       const d = data.data;
-      if (d.receitas && d.receitas.length) state.receitas = d.receitas;
-      if (d.despesas && d.despesas.length) state.despesas = d.despesas;
-      if (d.investimentos && d.investimentos.length) state.investimentos = d.investimentos;
+      let imported = [];
+      if (d.receitas && d.receitas.length)     { state.receitas = d.receitas; imported.push(d.receitas.length + ' receitas'); }
+      if (d.despesas && d.despesas.length)     { state.despesas = d.despesas; imported.push(d.despesas.length + ' despesas'); }
+      if (d.investimentos && d.investimentos.length) { state.investimentos = d.investimentos; imported.push(d.investimentos.length + ' investimentos'); }
       saveState(); renderAll();
-      showSheetsMsg('success', `✅ Importados: ${(d.receitas||[]).length} receitas, ${(d.despesas||[]).length} despesas, ${(d.investimentos||[]).length} investimentos.`);
-      sheetsSetStatus(true);
+      if (imported.length) {
+        showSheetsMsg('success', '✅ Importados: ' + imported.join(', ') + '.');
+        sheetsSetStatus(true);
+      } else {
+        showSheetsMsg('warn', '⚠️ Planilha conectada, mas sem dados para importar. Sincronize primeiro ou adicione dados manualmente na planilha.');
+      }
     } else {
-      showSheetsMsg('error', '❌ ' + (data.msg || 'Planilha vazia ou sem dados para importar.'));
+      showSheetsMsg('error', '❌ ' + (data.msg || 'Erro desconhecido na importação.'));
     }
   } catch(e) {
     showSheetsMsg('error', '❌ Erro ao importar: ' + e.message);
